@@ -60,25 +60,25 @@ def _safe_extract_zip(zip_path, extract_dir):
                 raise Exception(f"Unsafe zip path detected: {name}")
         zf.extractall(extract_dir)
 
-
-def _ensure_cub_data(data_folder):
-    os.makedirs(data_folder, exist_ok=True)
-    extracted_root = os.path.join(data_folder, "CUB_200_2011")
-    if os.path.isdir(extracted_root):
+##
+def _ensure_cub_data(data_folder): # 3
+    os.makedirs(data_folder, exist_ok=True) # data/cub
+    extracted_root = os.path.join(data_folder, "CUB_200_2011") # data/cub/CUB_200_2011
+    if os.path.isdir(extracted_root): # 있으면 넘어가기 
         return
 
-    tgz_path = os.path.join(data_folder, "CUB_200_2011.tgz")
+    tgz_path = os.path.join(data_folder, "CUB_200_2011.tgz") # data/cub/CUB_200_2011.tgz
     url = "https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz?download=1"
-    _download_file(url, tgz_path)
+    _download_file(url, tgz_path) # 다운받기 
     print(f"Extracting {tgz_path} -> {data_folder}")
-    _safe_extract_tar(tgz_path, data_folder)
+    _safe_extract_tar(tgz_path, data_folder) # 압축 풀기 
 
 
-def _ensure_flowers_data(data_folder):
-    os.makedirs(data_folder, exist_ok=True)
-    jpg_dir = os.path.join(data_folder, "jpg")
-    imagelabels = os.path.join(data_folder, "imagelabels.mat")
-    setid = os.path.join(data_folder, "setid.mat")
+def _ensure_flowers_data(data_folder): # 3
+    os.makedirs(data_folder, exist_ok=True) # data/flowers
+    jpg_dir = os.path.join(data_folder, "jpg") 
+    imagelabels = os.path.join(data_folder, "imagelabels.mat") 
+    setid = os.path.join(data_folder, "setid.mat") 
     readme = os.path.join(data_folder, "README.txt")
 
     files = [
@@ -98,7 +98,7 @@ def _ensure_flowers_data(data_folder):
         _safe_extract_tar(tgz_path, data_folder)
 
 
-def _ensure_okvqa_data(data_folder):
+def _ensure_okvqa_data(data_folder): # 3
     os.makedirs(data_folder, exist_ok=True)
 
     targets = [
@@ -134,7 +134,7 @@ def _ensure_okvqa_data(data_folder):
         ),
     ]
 
-    for url, archive_path, extracted_target in targets:
+    for url, archive_path, extracted_target in targets: 
         if os.path.exists(extracted_target):
             continue
         _download_file(url, archive_path)
@@ -142,7 +142,7 @@ def _ensure_okvqa_data(data_folder):
         _safe_extract_zip(archive_path, data_folder)
 
 
-def _ensure_vizwiz_data(data_folder):
+def _ensure_vizwiz_data(data_folder): # 4
     os.makedirs(data_folder, exist_ok=True)
 
     train_dir = os.path.join(data_folder, "train")
@@ -182,9 +182,9 @@ def _ensure_vizwiz_data(data_folder):
                 os.rmdir(anno_dir)
             except OSError:
                 pass
+## 
 
-
-def _ensure_dataset_available(dataset_name, data_folder):
+def _ensure_dataset_available(dataset_name, data_folder): # 2
     if dataset_name == "cub":
         _ensure_cub_data(data_folder)
     elif dataset_name == "flowers":
@@ -310,6 +310,7 @@ class Dataset:
                 inputs = processor(images=batch_imgs, return_tensors="pt").to(model.device)
                 with torch.no_grad():
                     embeddings = model.get_image_features(**inputs)
+                    embeddings = getattr(embeddings, "pooler_output", embeddings)  # transformers>=5 returns a ModelOutput
                     embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
                 all_embeddings.append(embeddings.cpu())
             all_embeddings = torch.cat(all_embeddings, dim=0)
@@ -333,6 +334,7 @@ class Dataset:
                 with torch.no_grad():
                     # embeddings = model.get_text_features(**inputs)
                     embeddings = model.get_text_features(inputs['input_ids'][:, :77])
+                    embeddings = getattr(embeddings, "pooler_output", embeddings)  # transformers>=5 returns a ModelOutput
                     embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
                 all_embeddings.append(embeddings.cpu())
             all_embeddings = torch.cat(all_embeddings, dim=0)
@@ -340,7 +342,7 @@ class Dataset:
                 torch.save(all_embeddings, save_path)
         return all_embeddings
 
-def load_dataset(dataset_name, data_folder=None, split="test"):
+def load_dataset(dataset_name, data_folder=None, split="test"): # 1
     """
     Load a dataset by name.
     
@@ -352,7 +354,7 @@ def load_dataset(dataset_name, data_folder=None, split="test"):
     Returns:
         Dataset object
     """
-    dataset_loaders = {
+    dataset_loaders = { # 문자열 이름을 실제 로딩함수랑 연결하는 dictionary 
         'okvqa': load_okvqa,
         'vizwiz': load_vizwiz,
         'cub': load_cub,
@@ -372,9 +374,9 @@ def load_dataset(dataset_name, data_folder=None, split="test"):
     if data_folder is None:
         data_folder = default_folders[dataset_name]
 
-    _ensure_dataset_available(dataset_name, data_folder)
+    _ensure_dataset_available(dataset_name, data_folder) # 중요한 부분! 데이터 자동 다운로드 
     
-    return dataset_loaders[dataset_name](data_folder=data_folder, split=split)
+    return dataset_loaders[dataset_name](data_folder=data_folder, split=split) # 예를 들어 load_okvqa(data_folder=REPO_ROOT / "data" / "okvqa", split="test")
 
 def load_okvqa(data_folder = "../data/okvqa", split="test"):
 

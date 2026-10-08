@@ -10,7 +10,7 @@ from load_data import load_dataset
 
 SRC_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SRC_DIR.parent
-
+ 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Precompute CLIP embeddings for train/test splits")
@@ -21,15 +21,15 @@ def main() -> None:
     parser.add_argument("--image_batch_size", type=int, default=64)
     args = parser.parse_args()
 
-    clip_model = CLIPModel.from_pretrained(args.clip_model, device_map="auto")
-    clip_processor = CLIPProcessor.from_pretrained(args.clip_model)
+    clip_model = CLIPModel.from_pretrained(args.clip_model, device_map="auto") # device_map="auto"는 CLIP 모델을 GPU로 자동으로 올린다는 의미
+    clip_processor = CLIPProcessor.from_pretrained(args.clip_model) 
 
-    save_dir = os.path.join(args.save_root, args.data)
-    os.makedirs(save_dir, exist_ok=True)
+    save_dir = os.path.join(args.save_root, args.data) 
+    os.makedirs(save_dir, exist_ok=True) # CIRCLES/embeddings/okvqa, vizwiz, cub, flowers
 
     for split in ["train", "test"]:
         print(f"Loading {args.data}/{split}")
-        dataset = load_dataset(args.data, split=split)
+        dataset = load_dataset(args.data, split=split) # load_data.py 파일의 함수 
 
         text_save = os.path.join(save_dir, f"{split}_text_embeddings.pt")
         image_save = os.path.join(save_dir, f"{split}_image_embeddings.pt")

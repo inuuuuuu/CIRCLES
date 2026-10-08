@@ -529,6 +529,7 @@ class VisualICL:
         inputs = self._clip_processor(images=[image], return_tensors="pt").to(self._clip_model.device)
         with torch.no_grad():
             features = self._clip_model.get_image_features(**inputs)
+            features = getattr(features, "pooler_output", features)  # transformers>=5 returns a ModelOutput
         return torch.nn.functional.normalize(features)
 
     def _get_text_features(self, text: str) -> torch.Tensor:
@@ -541,6 +542,7 @@ class VisualICL:
             input_ids = input_ids[:, :77]
         with torch.no_grad():
             features = self._clip_model.get_text_features(input_ids)
+            features = getattr(features, "pooler_output", features)  # transformers>=5 returns a ModelOutput
         return torch.nn.functional.normalize(features)
 
     @staticmethod
