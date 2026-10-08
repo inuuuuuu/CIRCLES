@@ -13,43 +13,49 @@ from sklearn.metrics import f1_score
 from load_data import load_dataset
 
 
-SRC_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SRC_DIR.parent
+SRC_DIR = Path(__file__).resolve().parent # .../CIRCLES/scr
+REPO_ROOT = SRC_DIR.parent # .../CIRCLES 
 
 # VizWiz normalization and variable naming are intentionally aligned with the
 # official evaluation API style (vqaEval.py) for consistency.
 # Reference: https://vizwiz.cs.colorado.edu/VizWiz_final/vqa_data/API.zip
 
+# 구두점(punctuation) : 문장 끊거나 구분하려고 쓰는 기호. + 답변에 방해되는 요소 
 punct = [";", r"/", "[", "]", '"', "{", "}", "(", ")", "=", "+", "\\", "_", "-", ">", "<", "@", "`", ",", "?", "!"]
 
+# 숫자 단어 -> 숫자 
 manualMap = {"none": "0", "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
 
+# 관사 : 나중에 지움
 articles = ["a", "an", "the"]
 
-periodStrip = re.compile(r"(?!<=\d)(\.)(?!\d)")
-commaStrip = re.compile(r"(\d)(\,)(\d)")
+# ?=X ?!X ?<=X ?<!X / <- 이것들 말고는 매칭 결과에 포함한다. 
+# periodStrip = re.compile(r"(?!<=\d)(\.)(?!\d)") 
+periodStrip = re.compile(r"(?<!\d)(\.)(?!\d)") # <- 이거 아닌가? (숫자 아님) (.) (숫자 아님)  
+commaStrip = re.compile(r"(\d)(\,)(\d)") # (숫자) (,) (숫자)
 
+# upostrophe : '   
 contractions = {"aint": "ain't", "arent": "aren't", "cant": "can't", "couldve": "could've", "couldnt": "couldn't", "couldn'tve": "couldn’t’ve", "couldnt’ve": "couldn’t’ve", "didnt": "didn’t", "doesnt": "doesn’t", "dont": "don’t", "hadnt": "hadn’t", "hadnt’ve": "hadn’t’ve", "hadn'tve": "hadn’t’ve", "hasnt": "hasn’t", "havent": "haven’t", "hed": "he’d", "hed’ve": "he’d’ve", "he’dve": "he’d’ve", "hes": "he’s", "howd": "how’d", "howll": "how’ll", "hows": "how’s", "Id’ve": "I’d’ve", "I’dve": "I’d’ve", "Im": "I’m", "Ive": "I’ve", "isnt": "isn’t", "itd": "it’d", "itd’ve": "it’d’ve", "it’dve": "it’d’ve", "itll": "it’ll", "let’s": "let’s", "maam": "ma’am", "mightnt": "mightn’t", "mightnt’ve": "mightn’t’ve", "mightn’tve": "mightn’t’ve", "mightve": "might’ve", "mustnt": "mustn’t", "mustve": "must’ve", "neednt": "needn’t", "notve": "not’ve", "oclock": "o’clock", "oughtnt": "oughtn’t", "ow’s’at": "’ow’s’at", "’ows’at": "’ow’s’at", "’ow’sat": "’ow’s’at", "shant": "shan’t", "shed’ve": "she’d’ve", "she’dve": "she’d’ve", "she’s": "she’s", "shouldve": "should’ve", "shouldnt": "shouldn’t", "shouldnt’ve": "shouldn’t’ve", "shouldn’tve": "shouldn’t’ve", "somebody’d": "somebodyd", "somebodyd’ve": "somebody’d’ve", "somebody’dve": "somebody’d’ve", "somebodyll": "somebody’ll", "somebodys": "somebody’s", "someoned": "someone’d", "someoned’ve": "someone’d’ve", "someone’dve": "someone’d’ve", "someonell": "someone’ll", "someones": "someone’s", "somethingd": "something’d", "somethingd’ve": "something’d’ve", "something’dve": "something’d’ve", "somethingll": "something’ll", "thats": "that’s", "thered": "there’d", "thered’ve": "there’d’ve", "there’dve": "there’d’ve", "therere": "there’re", "theres": "there’s", "theyd": "they’d", "theyd’ve": "they’d’ve", "they’dve": "they’d’ve", "theyll": "they’ll", "theyre": "they’re", "theyve": "they’ve", "twas": "’twas", "wasnt": "wasn’t", "wed’ve": "we’d’ve", "we’dve": "we’d’ve", "weve": "we've", "werent": "weren’t", "whatll": "what’ll", "whatre": "what’re", "whats": "what’s", "whatve": "what’ve", "whens": "when’s", "whered": "where’d", "wheres": "where's", "whereve": "where’ve", "whod": "who’d", "whod’ve": "who’d’ve", "who’dve": "who’d’ve", "wholl": "who’ll", "whos": "who’s", "whove": "who've", "whyll": "why’ll", "whyre": "why’re", "whys": "why’s", "wont": "won’t", "wouldve": "would’ve", "wouldnt": "wouldn’t", "wouldnt’ve": "wouldn’t’ve", "wouldn’tve": "wouldn’t’ve", "yall": "y’all", "yall’ll": "y’all’ll", "y’allll": "y’all’ll", "yall’d’ve": "y’all’d’ve", "y’alld’ve": "y’all’d’ve", "y’all’dve": "y’all’d’ve", "youd": "you’d", "youd’ve": "you’d’ve", "you’dve": "you’d’ve", "youll": "you’ll", "youre": "you’re", "youve": "you’ve"}
 
 def processPunctuation(inText: str) -> str:
     outText = inText
     for p in punct:
         if (p + " " in inText or " " + p in inText) or (re.search(commaStrip, inText) is not None):
-            outText = outText.replace(p, "")
+            outText = outText.replace(p, "") # 삭제 ex. '; ' 또는 ' ;' 또는 '1,000' 
         else:
-            outText = outText.replace(p, " ")
-    outText = periodStrip.sub("", outText, re.UNICODE)
+            outText = outText.replace(p, " ") # 공백으로 : 떨어져 있지 않은 구두점에 대해 삭제해버리면 단어가 붙어버릴 수 있다. 
+    outText = periodStrip.sub("", outText, re.UNICODE) # UNICODE: 32 마침표 최대 32개 제거 
     return outText
 
 
 def processDigitArticle(inText: str) -> str:
     words = []
     for word in inText.lower().split():
-        word = manualMap.get(word, word)
-        if word in articles:
+        word = manualMap.get(word, word) # dict(key, default) : key가 dict에 있으면 dict[key] 반환, 없으면 default 반환
+        if word in articles: 
             continue
-        words.append(contractions.get(word, word))
-    return " ".join(words)
+        words.append(contractions.get(word, word)) # 동일 
+    return " ".join(words) # 숫자->단어 변환, 관사제거, upostrophe 변환 후 공백으로 join
 
 
 def _compute_vizwiz_scores(items: List[Dict]) -> Tuple[float, float, Dict[str, Tuple[float, float]], int]:
@@ -182,7 +188,7 @@ def _build_completeness_message(pred_count: int, expected_count: int) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate prediction jsonl")
     parser.add_argument("--pred_file", type=str, required=True)
-    parser.add_argument("--data", type=str, required=True, choices=["okvqa", "vizwiz", "cub", "flowers"])
+    parser.add_argument("--data", type=str, required=True, choices=["okvqa", "vizwiz", "cub", "flowers", "waterbirds"])
     args = parser.parse_args()
 
     if not os.path.exists(args.pred_file):
@@ -205,7 +211,7 @@ def main() -> None:
     if total_lines != len(items):
         print(f"Evaluating {len(items)} unique records from {total_lines} file lines.")
 
-    if args.data in {"cub", "flowers"}:
+    if args.data in {"cub", "flowers", "waterbirds"}:
         acc = sum(it["pred_answer"].strip().lower() == it["gt_answer"].strip().lower() for it in items) / len(items)
         wf1 = _compute_weighted_f1(items)
         print(f"Accuracy: {acc * 100:.2f}% | Weighted F1: {wf1 * 100:.2f}%")

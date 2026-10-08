@@ -1,6 +1,7 @@
+analysis/
 data/
 embeddings/
+logs/
 results/
 __pycache__/
 *.pyc
-.venv/

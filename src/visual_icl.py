@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 from PIL import Image
-from transformers import CLIPModel, CLIPProcessor
+from transformers import CLIPModel, CLIPProcessor 
 from vllm import LLM, SamplingParams
 
 try:

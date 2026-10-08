@@ -87,7 +87,7 @@ def main() -> None:
             "google/gemma-3-27b-it",
         ],
     )
-    parser.add_argument("--data", type=str, default="okvqa", choices=["okvqa", "vizwiz", "cub", "flowers"])
+    parser.add_argument("--data", type=str, default="okvqa", choices=["okvqa", "vizwiz", "cub", "flowers", "waterbirds"])
     parser.add_argument(
         "--method",
         type=str,

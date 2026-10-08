@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 from scipy.io import loadmat
+import csv 
 
 hf_data_cache = {}
 
@@ -74,6 +75,21 @@ def _ensure_cub_data(data_folder): # 3
     _safe_extract_tar(tgz_path, data_folder) # 압축 풀기 
 
 
+def _ensure_waterbirds_data(data_folder): # 3
+    os.makedirs(data_folder, exist_ok=True)
+    extracted_root = os.path.join(data_folder, "waterbird_complete95_forest2water2")
+    if os.path.isdir(extracted_root):
+        return
+    
+    tgz_path = os.path.join(data_folder, "waterbird_complete95_forest2water2.tar.gz")
+    url = "https://downloads.cs.stanford.edu/nlp/data/dro/waterbird_complete95_forest2water2.tar.gz"
+    _download_file(url, tgz_path)
+    print(f"Extracting {tgz_path} -> {data_folder}")
+    _safe_extract_tar(tgz_path, data_folder) 
+
+    
+
+
 def _ensure_flowers_data(data_folder): # 3
     os.makedirs(data_folder, exist_ok=True) # data/flowers
     jpg_dir = os.path.join(data_folder, "jpg") 
@@ -90,12 +106,12 @@ def _ensure_flowers_data(data_folder): # 3
 
     for url, path in files:
         if not os.path.exists(path):
-            _download_file(url, path)
+            _download_file(url, path) # 다운받기 
 
     if not os.path.isdir(jpg_dir):
         tgz_path = os.path.join(data_folder, "102flowers.tgz")
         print(f"Extracting {tgz_path} -> {data_folder}")
-        _safe_extract_tar(tgz_path, data_folder)
+        _safe_extract_tar(tgz_path, data_folder) # 이미지 압축 풀기 
 
 
 def _ensure_okvqa_data(data_folder): # 3
@@ -142,7 +158,7 @@ def _ensure_okvqa_data(data_folder): # 3
         _safe_extract_zip(archive_path, data_folder)
 
 
-def _ensure_vizwiz_data(data_folder): # 4
+def _ensure_vizwiz_data(data_folder): # 3
     os.makedirs(data_folder, exist_ok=True)
 
     train_dir = os.path.join(data_folder, "train")
@@ -182,11 +198,15 @@ def _ensure_vizwiz_data(data_folder): # 4
                 os.rmdir(anno_dir)
             except OSError:
                 pass
+
+
 ## 
 
 def _ensure_dataset_available(dataset_name, data_folder): # 2
     if dataset_name == "cub":
         _ensure_cub_data(data_folder)
+    elif dataset_name == "waterbirds":
+        _ensure_waterbirds_data(data_folder)
     elif dataset_name == "flowers":
         _ensure_flowers_data(data_folder)
     elif dataset_name == "okvqa":
@@ -359,6 +379,7 @@ def load_dataset(dataset_name, data_folder=None, split="test"): # 1
         'vizwiz': load_vizwiz,
         'cub': load_cub,
         'flowers': load_flowers,
+        'waterbirds': load_waterbirds,
     }
     
     default_folders = {
@@ -366,13 +387,14 @@ def load_dataset(dataset_name, data_folder=None, split="test"): # 1
         'vizwiz': str(REPO_ROOT / "data" / "vizwiz"),
         'cub': str(REPO_ROOT / "data" / "cub"),
         'flowers': str(REPO_ROOT / "data" / "flowers"),
+        'waterbirds': str(REPO_ROOT / "data" / "waterbirds"),
     }
     
     if dataset_name not in dataset_loaders:
         raise ValueError(f"Unknown dataset: {dataset_name}. Available datasets: {list(dataset_loaders.keys())}")
     
     if data_folder is None:
-        data_folder = default_folders[dataset_name]
+        data_folder = default_folders[dataset_name] 
 
     _ensure_dataset_available(dataset_name, data_folder) # 중요한 부분! 데이터 자동 다운로드 
     
@@ -385,7 +407,7 @@ def load_okvqa(data_folder = "../data/okvqa", split="test"):
         anno_file = os.path.join(data_folder, "mscoco_val2014_annotations.json")
         ques_file = os.path.join(data_folder, "OpenEnded_mscoco_val2014_questions.json")
         image_folder = os.path.join(data_folder, "val2014")
-        fname_prefix = "COCO_val2014_"
+        fname_prefix = "COCO_val2014_" 
     else:
         anno_file = os.path.join(data_folder, "mscoco_train2014_annotations.json")
         ques_file = os.path.join(data_folder, "OpenEnded_mscoco_train2014_questions.json")
@@ -488,12 +510,12 @@ def load_cub(data_folder = "../data/cub", split="test"):
     test_indices = train_test_split[np.where(train_test_split[:, 1] == 0)][:, 0]
 
     idx2imgpath = np.loadtxt(os.path.join(data_folder, 'CUB_200_2011/images.txt'), dtype=str)
-    idx2imgpath = {int(line[0]): line[1] for line in idx2imgpath}
+    idx2imgpath = {int(line[0]): line[1] for line in idx2imgpath} # 이미지 번호 -> 경로
     id2classname = np.loadtxt(os.path.join(data_folder, 'CUB_200_2011/classes.txt'), dtype=str)
-    id2classname = {int(line[0]): '.'.join(line[1].split('.')[1:]) for line in id2classname}
+    id2classname = {int(line[0]): '.'.join(line[1].split('.')[1:]) for line in id2classname} # 클래스 번호 -> 클래스 이름
 
     imageidx2classid = np.loadtxt(os.path.join(data_folder, 'CUB_200_2011/image_class_labels.txt'), dtype=int)
-    imageidx2classid = {line[0]: line[1] for line in imageidx2classid}
+    imageidx2classid = {line[0]: line[1] for line in imageidx2classid} # 이미지번호 -> 클래스 번호
 
     if split == "train":
         selected_indices = train_indices
@@ -501,9 +523,9 @@ def load_cub(data_folder = "../data/cub", split="test"):
         selected_indices = test_indices
 
     question = [f"What is the category of the bird in this image?" for _ in range(len(selected_indices))]
-    answer = [id2classname[imageidx2classid[idx]] for idx in selected_indices]
-    imgpaths = [os.path.join(image_folder, idx2imgpath[idx]) for idx in selected_indices]
-    ids = [str(idx) for idx in selected_indices]
+    answer = [id2classname[imageidx2classid[idx]] for idx in selected_indices] # 이미지 번호 -> 클래스 번호 -> 이름 
+    imgpaths = [os.path.join(image_folder, idx2imgpath[idx]) for idx in selected_indices] # 이미지 번호 -> 이미지 경로 
+    ids = [str(idx) for idx in selected_indices] # 원본 이미지 번호 그대로 
 
     return Dataset(
         name="cub",
@@ -550,6 +572,42 @@ def load_flowers(data_folder = "../data/flowers", split="test"):
 
     return Dataset(
         name="flowers",
+        task=task,
+        split=split,
+        ids=ids,
+        imgpaths=imgpaths,
+        questions=question,
+        answers=answer,
+        options=options,
+    )
+
+def load_waterbirds(data_folder = "../data/waterbirds", split="test"):
+    task = "cls"
+
+    image_folder = os.path.join(data_folder, "waterbird_complete95_forest2water2")
+
+    csv_file = os.path.join(image_folder, "metadata.csv")
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
+        data = [row for row in reader]
+
+    # metadata split: 0=train, 1=val, 2=test
+    if split == "train":
+        selected_data = [row for row in data if row['split'] in {'0', '1'}]
+    else:
+        selected_data = [row for row in data if row['split'] == '2']
+
+
+    question = [f"What is the category of the bird in this image?" for _ in range(len(selected_data))]
+    answer = ['.'.join(row['img_filename'].split('/')[0].split('.')[1:]) for row in selected_data]
+    imgpaths = [os.path.join(image_folder, row['img_filename']) for row in selected_data]
+    ids = [row['img_id'] for row in selected_data]
+    
+    class_folders = sorted(set(row['img_filename'].split('/')[0] for row in data))   # "001.Black_footed_Albatross", ...
+    options = ['.'.join(c.split('.')[1:]) for c in class_folders]                     # 번호 떼기
+
+    return Dataset(
+        name="waterbirds",
         task=task,
         split=split,
         ids=ids,

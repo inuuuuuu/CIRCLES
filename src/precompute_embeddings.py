@@ -14,7 +14,7 @@ REPO_ROOT = SRC_DIR.parent
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Precompute CLIP embeddings for train/test splits")
-    parser.add_argument("--data", type=str, required=True, choices=["okvqa", "vizwiz", "cub", "flowers"])
+    parser.add_argument("--data", type=str, required=True, choices=["okvqa", "vizwiz", "cub", "flowers", "waterbirds"])
     parser.add_argument("--clip_model", type=str, default="laion/CLIP-ViT-g-14-laion2B-s12B-b42K")
     parser.add_argument("--save_root", type=str, default=str(REPO_ROOT / "embeddings"))
     parser.add_argument("--text_batch_size", type=int, default=128)
